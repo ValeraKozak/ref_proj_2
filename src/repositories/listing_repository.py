@@ -7,6 +7,10 @@ from src.models.entities import Category, Listing, ListingStatus
 from src.repositories.base import Repository
 from src.utils.listing_sort_strategy import ListingSortStrategyFactory
 
+REGEX_OPERATOR = "$regex"
+OPTIONS_OPERATOR = "$options"
+CASE_INSENSITIVE_OPTION = "i"
+
 
 class ListingRepository(Repository[Listing]):
     def __init__(self, db):
@@ -26,25 +30,12 @@ class ListingRepository(Repository[Listing]):
         if category_id is not None:
             mongo_query["category_id"] = category_id
         if min_price is not None or max_price is not None:
-            price_filter: dict[str, float] = {}
-            if min_price is not None:
-                price_filter["$gte"] = min_price
-            if max_price is not None:
-                price_filter["$lte"] = max_price
-            mongo_query["price"] = price_filter
+            mongo_query["price"] = self._build_price_filter(
+                min_price=min_price,
+                max_price=max_price,
+            )
         if query:
-            category_ids = [
-                category.id
-                for category in self.db.find_many(
-                    Category,
-                    {"name": {"$regex": escape(query.strip()), "$options": "i"}},
-                )
-            ]
-            mongo_query["$or"] = [
-                {"title": {"$regex": escape(query.strip()), "$options": "i"}},
-                {"description": {"$regex": escape(query.strip()), "$options": "i"}},
-                {"category_id": {"$in": category_ids or [-1]}},
-            ]
+            mongo_query["$or"] = self._build_search_filters(query)
 
         sort_strategy = ListingSortStrategyFactory.build(sort_by=sort_by, sort_order=sort_order)
         return self.db.find_many(
@@ -69,3 +60,37 @@ class ListingRepository(Repository[Listing]):
 
     def touch(self, listing: Listing) -> None:
         listing.updated_at = datetime.utcnow()
+
+    def _build_search_filters(self, query: str) -> list[dict[str, object]]:
+        category_ids = [
+            category.id
+            for category in self.db.find_many(
+                Category,
+                {"name": self._build_case_insensitive_pattern(query)},
+            )
+        ]
+        return [
+            {"title": self._build_case_insensitive_pattern(query)},
+            {"description": self._build_case_insensitive_pattern(query)},
+            {"category_id": {"$in": category_ids or [-1]}},
+        ]
+
+    @staticmethod
+    def _build_case_insensitive_pattern(query: str) -> dict[str, str]:
+        return {
+            REGEX_OPERATOR: escape(query.strip()),
+            OPTIONS_OPERATOR: CASE_INSENSITIVE_OPTION,
+        }
+
+    @staticmethod
+    def _build_price_filter(
+        *,
+        min_price: float | None,
+        max_price: float | None,
+    ) -> dict[str, float]:
+        price_filter: dict[str, float] = {}
+        if min_price is not None:
+            price_filter["$gte"] = min_price
+        if max_price is not None:
+            price_filter["$lte"] = max_price
+        return price_filter

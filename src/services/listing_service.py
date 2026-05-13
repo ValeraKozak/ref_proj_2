@@ -8,6 +8,7 @@ from src.models.entities import Category, Listing, ListingImage, ListingStatus, 
 from src.repositories.listing_repository import ListingRepository
 
 logger = logging.getLogger(__name__)
+LISTING_NOT_FOUND_DETAIL = "Listing not found"
 
 
 class ListingService:
@@ -84,16 +85,14 @@ class ListingService:
     def get_by_id(self, listing_id: int, current_user: User | None = None) -> Listing:
         listing = self.db.get(Listing, listing_id)
         if listing is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+            self._raise_listing_not_found()
         if listing.status == ListingStatus.APPROVED:
             self._enrich_listing(listing)
             return listing
-        if current_user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
-        if current_user.id == listing.owner_id or current_user.role in {Role.ADMIN, Role.MODERATOR}:
-            self._enrich_listing(listing)
-            return listing
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+        if not self._can_view_unpublished_listing(listing, current_user):
+            self._raise_listing_not_found()
+        self._enrich_listing(listing)
+        return listing
 
     def get_owned(self, owner: User) -> list[Listing]:
         return self._enrich_listings(self.listings.list_owned(owner.id))
@@ -111,10 +110,26 @@ class ListingService:
     def _get_owned_listing(self, listing_id: int, owner_id: int) -> Listing:
         listing = self.db.get(Listing, listing_id)
         if listing is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+            self._raise_listing_not_found()
         if listing.owner_id != owner_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your listing")
         return listing
+
+    @staticmethod
+    def _can_view_unpublished_listing(listing: Listing, current_user: User | None) -> bool:
+        if current_user is None:
+            return False
+        return current_user.id == listing.owner_id or current_user.role in {
+            Role.ADMIN,
+            Role.MODERATOR,
+        }
+
+    @staticmethod
+    def _raise_listing_not_found() -> None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=LISTING_NOT_FOUND_DETAIL,
+        )
 
     @staticmethod
     def _set_images(listing: Listing, image_urls) -> None:

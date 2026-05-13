@@ -1,0 +1,12 @@
+You are working in a Python FastAPI marketplace project.
+
+Global rules:
+- Do not generate production code without explicit interfaces or repository/service boundaries.
+- Prefer test-first or test-alongside-development workflow for any non-trivial change.
+- Every business rule change must include unit or integration tests.
+- Keep controllers thin and move business logic into services.
+- Do not couple services directly to raw database driver calls when a repository abstraction exists.
+- Preserve API contracts unless a task explicitly requests a breaking change.
+- Prefer deterministic tests with mocks or mongomock over external dependencies.
+- Generate coverage-friendly tests and keep CI artifacts up to date.
+- Do not delete or rewrite demo data unless the user explicitly asks for it.

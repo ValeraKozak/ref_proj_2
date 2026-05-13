@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant M as Модератор
+    participant FE as Frontend
+    participant API as FastAPI
+    participant S as ModerationService
+    participant R as ListingRepository
+    participant DB as MongoDB
+
+    M->>FE: Відкриває чергу модерації
+    FE->>API: GET /listings/moderation/pending
+    API->>R: list_for_moderation()
+    R->>DB: find pending listings
+    DB-->>R: pending listings
+    R-->>API: список DTO
+    API-->>FE: 200 OK
+
+    M->>FE: Обирає схвалити або відхилити
+    FE->>API: POST /moderation/listings/{id}
+    API->>S: review(listing_id, decision)
+    S->>R: get_by_id(listing_id)
+    R->>DB: find listing
+    DB-->>R: listing
+    S->>R: update status / rejection_reason
+    R->>DB: save listing
+    DB-->>R: updated listing
+    R-->>S: updated listing
+    S-->>API: ListingReadDTO
+    API-->>FE: 200 OK
+    FE-->>M: Оновлює чергу та стан оголошення

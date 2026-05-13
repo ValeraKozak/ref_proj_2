@@ -1,0 +1,10 @@
+flowchart LR
+    UI["React Frontend"] --> API["FastAPI REST API"]
+    API --> AUTH["Auth / JWT Layer"]
+    API --> SERVICES["Service Layer"]
+    SERVICES --> REPOS["Repository Layer"]
+    REPOS --> DB["MongoDB"]
+    API --> FILES["Uploads Directory"]
+    CI["GitHub Actions CI"] --> TESTS["Pytest + Ruff + Coverage"]
+    CI --> SONAR["SonarCloud"]
+    TESTS --> REPORTS["HTML/XML Reports"]

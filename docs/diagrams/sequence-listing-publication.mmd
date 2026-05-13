@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant U as Користувач
+    participant FE as Frontend
+    participant API as FastAPI
+    participant S as ListingService
+    participant R as ListingRepository
+    participant DB as MongoDB
+
+    U->>FE: Заповнює форму створення оголошення
+    FE->>API: POST /listings
+    API->>S: create(payload, current_user)
+    S->>R: перевірка owner / category / business rules
+    R->>DB: insert listing(status=pending)
+    DB-->>R: created listing
+    R-->>S: Listing
+    S-->>API: ListingReadDTO
+    API-->>FE: 201 Created
+    FE-->>U: Показує успішне створення\nта статус pending

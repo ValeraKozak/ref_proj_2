@@ -1,6 +1,7 @@
 erDiagram
     USERS ||--o{ LISTINGS : owns
     CATEGORIES ||--o{ LISTINGS : groups
+    LISTINGS ||--o{ LISTING_IMAGES : contains
     LISTINGS ||--o{ MESSAGES : contains
     USERS ||--o{ MESSAGES : sends
     USERS ||--o{ MESSAGES : receives
@@ -12,6 +13,7 @@ erDiagram
         string password_hash
         string role
         bool is_blocked
+        datetime created_at
     }
 
     CATEGORIES {
@@ -29,6 +31,15 @@ erDiagram
         string rejection_reason
         int owner_id FK
         int category_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    LISTING_IMAGES {
+        int id PK
+        int listing_id FK
+        string url
+        int position
     }
 
     MESSAGES {
@@ -37,4 +48,5 @@ erDiagram
         int sender_id FK
         int recipient_id FK
         text body
+        datetime created_at
     }

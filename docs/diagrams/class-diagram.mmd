@@ -6,6 +6,7 @@ classDiagram
         +string password_hash
         +Role role
         +bool is_blocked
+        +datetime created_at
     }
 
     class Category {
@@ -21,11 +22,26 @@ classDiagram
         +float price
         +ListingStatus status
         +string rejection_reason
+        +int owner_id
+        +int category_id
+        +datetime created_at
+        +datetime updated_at
+    }
+
+    class ListingImage {
+        +int id
+        +int listing_id
+        +string url
+        +int position
     }
 
     class Message {
         +int id
+        +int listing_id
+        +int sender_id
+        +int recipient_id
         +string body
+        +datetime created_at
     }
 
     class AuthService
@@ -35,12 +51,21 @@ classDiagram
     class MessageService
     class ModerationService
     class Repository~T~
+    class ListingSortStrategy
+    class DatabaseClientFactory
 
     User "1" --> "*" Listing : owns
     Category "1" --> "*" Listing : classifies
-    Listing "1" --> "*" Message : includes
-    User "1" --> "*" Message : sends/receives
+    Listing "1" --> "*" ListingImage : has
+    Listing "1" --> "*" Message : contains
+    User "1" --> "*" Message : sends
+    User "1" --> "*" Message : receives
+
+    AuthService --> Repository~T~
+    UserService --> Repository~T~
     CategoryService --> Repository~T~
     ListingService --> Repository~T~
     MessageService --> Repository~T~
-    UserService --> Repository~T~
+    ModerationService --> Repository~T~
+    ListingService --> ListingSortStrategy
+    Repository~T~ --> DatabaseClientFactory

@@ -1,16 +1,25 @@
 flowchart TD
-    Guest([Гість]) --> ViewListings[Перегляд схвалених оголошень]
-    Guest --> ViewCategories[Перегляд категорій]
-    User([Користувач]) --> Register[Реєстрація]
-    User --> Login[Авторизація]
-    User --> CreateListing[Створення оголошення]
-    User --> UpdateListing[Редагування оголошення]
-    User --> ArchiveListing[Архівація оголошення]
-    User --> SendMessage[Надсилання повідомлення]
-    User --> ViewOwnListings[Перегляд власних оголошень]
-    Moderator([Модератор]) --> ReviewQueue[Перегляд черги модерації]
-    Moderator --> ApproveListing[Схвалення оголошення]
-    Moderator --> RejectListing[Відхилення оголошення]
-    Admin([Адміністратор]) --> ManageCategories[Керування категоріями]
-    Admin --> ManageUsers[Керування користувачами]
-    Admin --> ReviewQueue
+    Guest["Гість"] --> BrowseCatalog["Перегляд каталогу"]
+    Guest --> ViewListing["Перегляд детальної сторінки оголошення"]
+    Guest --> BrowseCategories["Перегляд категорій"]
+
+    User["Користувач"] --> Register["Реєстрація"]
+    User --> Login["Авторизація"]
+    User --> CreateListing["Створення оголошення"]
+    User --> UpdateListing["Редагування власного оголошення"]
+    User --> ArchiveListing["Архівація оголошення"]
+    User --> UploadImages["Завантаження зображень"]
+    User --> ViewOwnListings["Перегляд власних оголошень"]
+    User --> SendMessage["Надсилання повідомлення"]
+    User --> ViewMessages["Перегляд повідомлень"]
+
+    Moderator["Модератор"] --> ViewModerationQueue["Перегляд черги модерації"]
+    Moderator --> ApproveListing["Схвалення оголошення"]
+    Moderator --> RejectListing["Відхилення оголошення"]
+
+    Admin["Адміністратор"] --> ManageCategories["Створення та керування категоріями"]
+    Admin --> ManageUsers["Керування користувачами"]
+    Admin --> BlockUser["Блокування користувача"]
+    Admin --> ViewModerationQueue
+    Admin --> ApproveListing
+    Admin --> RejectListing

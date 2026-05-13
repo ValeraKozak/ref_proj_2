@@ -31,6 +31,17 @@ type ListingFormState = {
   image_urls: string;
 };
 
+interface ModerationSectionProps {
+  pendingListings: Listing[];
+  categoryMap: Map<number, Category>;
+  moderationNotes: Record<number, string>;
+  moderationBusyId: number | null;
+  moderationError: string;
+  moderationSuccess: string;
+  onModerationNoteChange: (listingId: number, value: string) => void;
+  onModerateListing: (listingId: number, approved: boolean) => Promise<void>;
+}
+
 const EMPTY_LISTING_FORM: ListingFormState = {
   title: "",
   description: "",
@@ -41,6 +52,91 @@ const EMPTY_LISTING_FORM: ListingFormState = {
 
 const LISTING_SUCCESS_MESSAGE = "Оголошення створено та відправлено на модерацію.";
 const LISTING_FALLBACK_ERROR = "Не вдалося створити оголошення.";
+
+function ModerationSection({
+  pendingListings,
+  categoryMap,
+  moderationNotes,
+  moderationBusyId,
+  moderationError,
+  moderationSuccess,
+  onModerationNoteChange,
+  onModerateListing,
+}: ModerationSectionProps) {
+  return (
+    <section className="moderation-board">
+      <div className="moderation-board__header">
+        <div>
+          <strong>Черга модерації</strong>
+          <p>
+            Швидко переглядайте pending-оголошення, схвалюйте якісні публікації або
+            повертайте їх автору з поясненням.
+          </p>
+        </div>
+        <span className="status-pill">{pendingListings.length} у черзі</span>
+      </div>
+
+      {moderationError ? <p className="form-error">{moderationError}</p> : null}
+      {moderationSuccess ? <p className="form-success">{moderationSuccess}</p> : null}
+
+      <div className="moderation-grid">
+        {pendingListings.length ? (
+          pendingListings.map((listing) => (
+            <article className="moderation-card" key={listing.id}>
+              <div className="moderation-card__top">
+                <div>
+                  <span className="eyebrow">Pending review</span>
+                  <h4>{listing.title}</h4>
+                </div>
+                <span className="status-badge pending">Pending</span>
+              </div>
+
+              <div className="moderation-card__meta">
+                <span>{categoryMap.get(listing.category_id)?.name ?? "Без категорії"}</span>
+                <strong>${listing.price.toFixed(2)}</strong>
+              </div>
+
+              <p className="moderation-card__description">{listing.description}</p>
+
+              <label className="moderation-card__label">
+                Причина відхилення
+                <textarea
+                  value={moderationNotes[listing.id] ?? ""}
+                  placeholder="Наприклад: потрібні чіткіші фото, уточніть стан товару або заповніть опис."
+                  onChange={(event) => onModerationNoteChange(listing.id, event.target.value)}
+                />
+              </label>
+
+              <div className="moderation-card__actions">
+                <button
+                  className="ghost-button moderation-card__approve"
+                  disabled={moderationBusyId === listing.id}
+                  type="button"
+                  onClick={() => void onModerateListing(listing.id, true)}
+                >
+                  {moderationBusyId === listing.id ? "Обробляємо..." : "Схвалити"}
+                </button>
+                <button
+                  className="cta-button moderation-card__reject"
+                  disabled={moderationBusyId === listing.id}
+                  type="button"
+                  onClick={() => void onModerateListing(listing.id, false)}
+                >
+                  {moderationBusyId === listing.id ? "Обробляємо..." : "Відхилити"}
+                </button>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="empty-card moderation-empty">
+            <strong>Черга чиста</strong>
+            <p>Наразі немає pending-оголошень. Нові публікації з&apos;являються тут автоматично.</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export function WorkspacePanels({
   user,
@@ -217,6 +313,13 @@ export function WorkspacePanels({
     }
   }
 
+  function handleModerationNoteChange(listingId: number, value: string) {
+    setModerationNotes((current) => ({
+      ...current,
+      [listingId]: value,
+    }));
+  }
+
   return (
     <div className="workspace-grid">
       <section className="workspace-panel">
@@ -337,85 +440,16 @@ export function WorkspacePanels({
             {categorySuccess ? <p className="form-success">{categorySuccess}</p> : null}
           </form>
 
-          <section className="moderation-board">
-            <div className="moderation-board__header">
-              <div>
-                <strong>Черга модерації</strong>
-                <p>
-                  Швидко переглядайте pending-оголошення, схвалюйте якісні публікації або
-                  повертайте їх автору з поясненням.
-                </p>
-              </div>
-              <span className="status-pill">{pendingListings.length} у черзі</span>
-            </div>
-
-            {moderationError ? <p className="form-error">{moderationError}</p> : null}
-            {moderationSuccess ? <p className="form-success">{moderationSuccess}</p> : null}
-
-            <div className="moderation-grid">
-              {pendingListings.length ? (
-                pendingListings.map((listing) => (
-                  <article className="moderation-card" key={listing.id}>
-                    <div className="moderation-card__top">
-                      <div>
-                        <span className="eyebrow">Pending review</span>
-                        <h4>{listing.title}</h4>
-                      </div>
-                      <span className="status-badge pending">Pending</span>
-                    </div>
-
-                    <div className="moderation-card__meta">
-                      <span>{categoryMap.get(listing.category_id)?.name ?? "Без категорії"}</span>
-                      <strong>${listing.price.toFixed(2)}</strong>
-                    </div>
-
-                    <p className="moderation-card__description">{listing.description}</p>
-
-                    <label className="moderation-card__label">
-                      Причина відхилення
-                      <textarea
-                        value={moderationNotes[listing.id] ?? ""}
-                        placeholder="Наприклад: потрібні чіткіші фото, уточніть стан товару або заповніть опис."
-                        onChange={(event) =>
-                          setModerationNotes((current) => ({
-                            ...current,
-                            [listing.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <div className="moderation-card__actions">
-                      <button
-                        className="ghost-button moderation-card__approve"
-                        disabled={moderationBusyId === listing.id}
-                        type="button"
-                        onClick={() => void moderateListing(listing.id, true)}
-                      >
-                        {moderationBusyId === listing.id ? "Обробляємо..." : "Схвалити"}
-                      </button>
-                      <button
-                        className="cta-button moderation-card__reject"
-                        disabled={moderationBusyId === listing.id}
-                        type="button"
-                        onClick={() => void moderateListing(listing.id, false)}
-                      >
-                        {moderationBusyId === listing.id ? "Обробляємо..." : "Відхилити"}
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <div className="empty-card moderation-empty">
-                  <strong>Черга чиста</strong>
-                  <p>
-                    Наразі немає pending-оголошень. Нові публікації з&apos;являються тут
-                    автоматично.
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
+          <ModerationSection
+            pendingListings={pendingListings}
+            categoryMap={categoryMap}
+            moderationNotes={moderationNotes}
+            moderationBusyId={moderationBusyId}
+            moderationError={moderationError}
+            moderationSuccess={moderationSuccess}
+            onModerationNoteChange={handleModerationNoteChange}
+            onModerateListing={moderateListing}
+          />
 
           <div className="workspace-list-preview">
             <div>

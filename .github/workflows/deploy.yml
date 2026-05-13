@@ -22,14 +22,14 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             if printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin; then
               exit 0
             fi
             echo "GHCR login attempt $attempt failed, retrying..."
-            sleep $((attempt * 5))
+            sleep $((attempt * 10))
           done
-          echo "GHCR login failed after 3 attempts"
+          echo "GHCR login failed after 5 attempts"
           exit 1
       - name: Extract metadata
         id: meta

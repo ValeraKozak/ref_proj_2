@@ -38,6 +38,7 @@ src/
   models/
   dto/
   db/
+  utils/
 tests/
   unit/
   integration/
@@ -118,18 +119,19 @@ If you use SonarCloud, point `SONAR_HOST_URL` to `https://sonarcloud.io`.
 
 ## AI Rules
 The project includes AI-oriented repository rules:
-- [Global rules](</e:/Аналіз та рефакторинг коду/proj2/.cursorrules>)
-- [Architecture rules](</e:/Аналіз та рефакторинг коду/proj2/.cursor/rules/architecture.md>)
-- [Testing rules](</e:/Аналіз та рефакторинг коду/proj2/.cursor/rules/testing.md>)
+- [Global rules](./.cursorrules)
+- [Architecture rules](./.cursor/rules/architecture.md)
+- [Testing rules](./.cursor/rules/testing.md)
 
 ## Documentation
-- [Requirements](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/requirements.md>)
-- [Architecture](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/architecture.md>)
-- [Database](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/database.md>)
-- [API](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/api.md>)
-- [Frontend Guide](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/frontend.md>)
-- [Deployment](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/deployment.md>)
-- [Testing](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/testing.md>)
+- [Requirements](./docs/spec/requirements.md)
+- [Architecture](./docs/spec/architecture.md)
+- [Database](./docs/spec/database.md)
+- [API](./docs/spec/api.md)
+- [Frontend Guide](./docs/spec/frontend.md)
+- [Deployment](./docs/spec/deployment.md)
+- [Testing](./docs/spec/testing.md)
+- [Quality](./docs/spec/quality.md)
 
 ## Security Notes
 - JWT authentication
@@ -137,6 +139,12 @@ The project includes AI-oriented repository rules:
 - Pydantic request validation
 - Repository isolation for persistence logic
 - Environment-based configuration
+
+## Architecture Notes
+The codebase explicitly uses:
+- Repository pattern for persistence isolation
+- Strategy pattern for listing sort behavior
+- Factory pattern for database client creation
 
 ## Quality Goals
 - Coverage target: `70%+`

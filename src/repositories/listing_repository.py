@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from re import escape
 
 from pymongo import DESCENDING
@@ -59,7 +59,7 @@ class ListingRepository(Repository[Listing]):
         )
 
     def touch(self, listing: Listing) -> None:
-        listing.updated_at = datetime.utcnow()
+        listing.updated_at = datetime.now(UTC)
 
     def _build_search_filters(self, query: str) -> list[dict[str, object]]:
         category_ids = [

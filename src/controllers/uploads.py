@@ -50,7 +50,7 @@ def _ensure_upload_request_allowed(current_user: User, files: list[UploadFile]) 
 
 
 def _resolve_upload_dir() -> Path:
-    upload_dir = Path(settings.upload_dir).resolve()
+    upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
     return upload_dir
 
@@ -95,10 +95,12 @@ async def _store_upload_file(file: UploadFile, upload_dir: Path) -> UploadImageR
         suffix=extension,
         delete=False,
     ) as temporary_file:
-        temporary_file.write(contents)
-        filename = Path(temporary_file.name).name
+        destination = Path(temporary_file.name)
 
-    return UploadImageReadDTO(url=f"{settings.uploads_url_prefix.rstrip('/')}/{filename}")
+    destination.write_bytes(contents)
+    return UploadImageReadDTO(
+        url=f"{settings.uploads_url_prefix.rstrip('/')}/{destination.name}"
+    )
 
 
 @router.post("/images", status_code=201)

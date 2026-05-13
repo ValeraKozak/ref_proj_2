@@ -12,12 +12,8 @@ from pymongo.database import Database
 from pymongo.errors import DuplicateKeyError
 
 from src.core.config import get_settings
+from src.db.client_factory import DatabaseClientFactory
 from src.models.entities import Category, Listing, ListingImage, ListingStatus, Message, Role, User
-
-try:  # pragma: no cover - optional test dependency
-    import mongomock
-except ImportError:  # pragma: no cover - optional test dependency
-    mongomock = None
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -209,11 +205,7 @@ def deserialize(model: type, document: dict[str, Any], db: DatabaseSession) -> A
 
 
 def _create_client() -> MongoClient:
-    if settings.database_url.startswith("mongomock://"):
-        if mongomock is None:
-            raise RuntimeError("mongomock is required for mongomock:// database URLs")
-        return mongomock.MongoClient()
-    return MongoClient(settings.database_url, tz_aware=True)
+    return DatabaseClientFactory.create(settings.database_url)
 
 
 def _resolve_database_name(url: str) -> str:

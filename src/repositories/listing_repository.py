@@ -1,10 +1,11 @@
 from datetime import datetime
 from re import escape
 
-from pymongo import ASCENDING, DESCENDING
+from pymongo import DESCENDING
 
 from src.models.entities import Category, Listing, ListingStatus
 from src.repositories.base import Repository
+from src.utils.listing_sort_strategy import ListingSortStrategyFactory
 
 
 class ListingRepository(Repository[Listing]):
@@ -45,12 +46,11 @@ class ListingRepository(Repository[Listing]):
                 {"category_id": {"$in": category_ids or [-1]}},
             ]
 
-        sort_direction = ASCENDING if sort_order == "asc" else DESCENDING
-        sort_field = "price" if sort_by == "price" else "created_at"
+        sort_strategy = ListingSortStrategyFactory.build(sort_by=sort_by, sort_order=sort_order)
         return self.db.find_many(
             Listing,
             mongo_query,
-            sort=[(sort_field, sort_direction), ("id", DESCENDING)],
+            sort=sort_strategy.to_mongo_sort(),
         )
 
     def list_for_moderation(self) -> list[Listing]:

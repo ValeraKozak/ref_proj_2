@@ -23,6 +23,28 @@ interface WorkspacePanelsProps {
   ) => Promise<void>;
 }
 
+type ListingFormState = {
+  title: string;
+  description: string;
+  price: string;
+  category_id: string;
+  image_urls: string;
+};
+
+const EMPTY_LISTING_FORM: ListingFormState = {
+  title: "",
+  description: "",
+  price: "",
+  category_id: "",
+  image_urls: "",
+};
+
+const LISTING_SUCCESS_MESSAGE =
+  "РћРіРѕР»РѕС€РµРЅРЅСЏ СЃС‚РІРѕСЂРµРЅРѕ С‚Р° РІС–РґРїСЂР°РІР»РµРЅРѕ РЅР° РјРѕРґРµСЂР°С†С–СЋ.";
+
+const LISTING_FALLBACK_ERROR =
+  "РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё РѕРіРѕР»РѕС€РµРЅРЅСЏ.";
+
 export function WorkspacePanels({
   user,
   categories,
@@ -39,13 +61,7 @@ export function WorkspacePanels({
     [categories],
   );
 
-  const [listingForm, setListingForm] = useState({
-    title: "",
-    description: "",
-    price: "",
-    category_id: "",
-    image_urls: "",
-  });
+  const [listingForm, setListingForm] = useState<ListingFormState>(EMPTY_LISTING_FORM);
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
   const [moderationNotes, setModerationNotes] = useState<Record<number, string>>({});
   const [listingBusy, setListingBusy] = useState(false);
@@ -67,60 +83,69 @@ export function WorkspacePanels({
     }
   }
 
+  function parseImageUrls(rawValue: string) {
+    return rawValue
+      .split("\n")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  function getListingValidationError(
+    currentUser: User | null,
+    form: ListingFormState,
+    imageUrls: string[],
+  ) {
+    if (!currentUser) {
+      return "РЈРІС–Р№РґС–С‚СЊ Сѓ СЃРёСЃС‚РµРјСѓ, С‰РѕР± СЃС‚РІРѕСЂРёС‚Рё РѕРіРѕР»РѕС€РµРЅРЅСЏ.";
+    }
+    if (form.title.trim().length < 5) {
+      return "РќР°Р·РІР° РѕРіРѕР»РѕС€РµРЅРЅСЏ РјР°С” РјС–СЃС‚РёС‚Рё С‰РѕРЅР°Р№РјРµРЅС€Рµ 5 СЃРёРјРІРѕР»С–РІ.";
+    }
+    if (form.description.trim().length < 20) {
+      return "РћРїРёСЃ РѕРіРѕР»РѕС€РµРЅРЅСЏ РјР°С” РјС–СЃС‚РёС‚Рё С‰РѕРЅР°Р№РјРµРЅС€Рµ 20 СЃРёРјРІРѕР»С–РІ.";
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      return "Р’РєР°Р¶С–С‚СЊ РєРѕСЂРµРєС‚РЅСѓ С†С–РЅСѓ, Р±С–Р»СЊС€Сѓ Р·Р° 0.";
+    }
+    if (!form.category_id) {
+      return "РћР±РµСЂС–С‚СЊ РєР°С‚РµРіРѕСЂС–СЋ РґР»СЏ РѕРіРѕР»РѕС€РµРЅРЅСЏ.";
+    }
+    if (imageUrls.some((value) => !isValidHttpUrl(value))) {
+      return "РЈ РїРѕР»С– Р·РѕР±СЂР°Р¶РµРЅСЊ РјРѕР¶РЅР° РІРєР°Р·СѓРІР°С‚Рё Р»РёС€Рµ РїРѕРІРЅС– РїРѕСЃРёР»Р°РЅРЅСЏ С„РѕСЂРјР°С‚Сѓ http/https, РїРѕ РѕРґРЅРѕРјСѓ РІ СЂСЏРґРєСѓ.";
+    }
+    return null;
+  }
+
+  function buildListingPayload(form: ListingFormState, imageUrls: string[]) {
+    return {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      price: Number(form.price),
+      category_id: Number(form.category_id),
+      image_urls: imageUrls,
+    };
+  }
+
   async function submitListing(event: FormEvent) {
     event.preventDefault();
     setListingError("");
     setListingSuccess("");
 
-    if (!user) {
-      setListingError("Увійдіть у систему, щоб створити оголошення.");
-      return;
-    }
-    if (listingForm.title.trim().length < 5) {
-      setListingError("Назва оголошення має містити щонайменше 5 символів.");
-      return;
-    }
-    if (listingForm.description.trim().length < 20) {
-      setListingError("Опис оголошення має містити щонайменше 20 символів.");
-      return;
-    }
-    if (!listingForm.price || Number(listingForm.price) <= 0) {
-      setListingError("Вкажіть коректну ціну, більшу за 0.");
-      return;
-    }
-    if (!listingForm.category_id) {
-      setListingError("Оберіть категорію для оголошення.");
-      return;
-    }
-
-    const imageUrls = listingForm.image_urls
-      .split("\n")
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (imageUrls.some((value) => !isValidHttpUrl(value))) {
-      setListingError(
-        "У полі зображень можна вказувати лише повні посилання формату http/https, по одному в рядку.",
-      );
+    const imageUrls = parseImageUrls(listingForm.image_urls);
+    const validationError = getListingValidationError(user, listingForm, imageUrls);
+    if (validationError) {
+      setListingError(validationError);
       return;
     }
 
     setListingBusy(true);
 
     try {
-      await onCreateListing({
-        title: listingForm.title.trim(),
-        description: listingForm.description.trim(),
-        price: Number(listingForm.price),
-        category_id: Number(listingForm.category_id),
-        image_urls: imageUrls,
-      });
-      setListingForm({ title: "", description: "", price: "", category_id: "", image_urls: "" });
-      setListingSuccess("Оголошення створено та відправлено на модерацію.");
+      await onCreateListing(buildListingPayload(listingForm, imageUrls));
+      setListingForm(EMPTY_LISTING_FORM);
+      setListingSuccess(LISTING_SUCCESS_MESSAGE);
     } catch (error) {
-      setListingError(
-        error instanceof Error ? error.message : "Не вдалося створити оголошення.",
-      );
+      setListingError(error instanceof Error ? error.message : LISTING_FALLBACK_ERROR);
     } finally {
       setListingBusy(false);
     }
@@ -132,15 +157,15 @@ export function WorkspacePanels({
     setCategorySuccess("");
 
     if (!canOperate) {
-      setCategoryError("Створювати категорії можуть лише адміністратор або модератор.");
+      setCategoryError("РЎС‚РІРѕСЂСЋРІР°С‚Рё РєР°С‚РµРіРѕСЂС–С— РјРѕР¶СѓС‚СЊ Р»РёС€Рµ Р°РґРјС–РЅС–СЃС‚СЂР°С‚РѕСЂ Р°Р±Рѕ РјРѕРґРµСЂР°С‚РѕСЂ.");
       return;
     }
     if (categoryForm.name.trim().length < 2) {
-      setCategoryError("Назва категорії має містити щонайменше 2 символи.");
+      setCategoryError("РќР°Р·РІР° РєР°С‚РµРіРѕСЂС–С— РјР°С” РјС–СЃС‚РёС‚Рё С‰РѕРЅР°Р№РјРµРЅС€Рµ 2 СЃРёРјРІРѕР»Рё.");
       return;
     }
     if (categoryForm.description.trim().length < 5) {
-      setCategoryError("Опис категорії має містити щонайменше 5 символів.");
+      setCategoryError("РћРїРёСЃ РєР°С‚РµРіРѕСЂС–С— РјР°С” РјС–СЃС‚РёС‚Рё С‰РѕРЅР°Р№РјРµРЅС€Рµ 5 СЃРёРјРІРѕР»С–РІ.");
       return;
     }
 
@@ -152,9 +177,9 @@ export function WorkspacePanels({
         description: categoryForm.description.trim(),
       });
       setCategoryForm({ name: "", description: "" });
-      setCategorySuccess("Категорію успішно створено.");
+      setCategorySuccess("РљР°С‚РµРіРѕСЂС–СЋ СѓСЃРїС–С€РЅРѕ СЃС‚РІРѕСЂРµРЅРѕ.");
     } catch (error) {
-      setCategoryError(error instanceof Error ? error.message : "Не вдалося створити категорію.");
+      setCategoryError(error instanceof Error ? error.message : "РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё РєР°С‚РµРіРѕСЂС–СЋ.");
     } finally {
       setCategoryBusy(false);
     }
@@ -166,7 +191,7 @@ export function WorkspacePanels({
 
     const note = moderationNotes[listingId]?.trim() ?? "";
     if (!approved && note.length < 5) {
-      setModerationError("Для відхилення вкажіть коротку причину щонайменше з 5 символів.");
+      setModerationError("Р”Р»СЏ РІС–РґС…РёР»РµРЅРЅСЏ РІРєР°Р¶С–С‚СЊ РєРѕСЂРѕС‚РєСѓ РїСЂРёС‡РёРЅСѓ С‰РѕРЅР°Р№РјРµРЅС€Рµ Р· 5 СЃРёРјРІРѕР»С–РІ.");
       return;
     }
 
@@ -183,12 +208,12 @@ export function WorkspacePanels({
       });
       setModerationSuccess(
         approved
-          ? "Оголошення схвалено і воно вже може з'являтися в каталозі."
-          : "Оголошення відхилено з поясненням для автора.",
+          ? "РћРіРѕР»РѕС€РµРЅРЅСЏ СЃС…РІР°Р»РµРЅРѕ С– РІРѕРЅРѕ РІР¶Рµ РјРѕР¶Рµ Р·'СЏРІР»СЏС‚РёСЃСЏ РІ РєР°С‚Р°Р»РѕР·С–."
+          : "РћРіРѕР»РѕС€РµРЅРЅСЏ РІС–РґС…РёР»РµРЅРѕ Р· РїРѕСЏСЃРЅРµРЅРЅСЏРј РґР»СЏ Р°РІС‚РѕСЂР°.",
       );
     } catch (error) {
       setModerationError(
-        error instanceof Error ? error.message : "Не вдалося завершити модерацію.",
+        error instanceof Error ? error.message : "РќРµ РІРґР°Р»РѕСЃСЏ Р·Р°РІРµСЂС€РёС‚Рё РјРѕРґРµСЂР°С†С–СЋ.",
       );
     } finally {
       setModerationBusyId(null);
@@ -199,12 +224,12 @@ export function WorkspacePanels({
     <div className="workspace-grid">
       <section className="workspace-panel">
         <div className="workspace-panel__header">
-          <span className="eyebrow">Публікація</span>
-          <h3>{user ? `Робоча зона ${user.full_name}` : "Попередній перегляд кабінету"}</h3>
+          <span className="eyebrow">РџСѓР±Р»С–РєР°С†С–СЏ</span>
+          <h3>{user ? `Р РѕР±РѕС‡Р° Р·РѕРЅР° ${user.full_name}` : "РџРѕРїРµСЂРµРґРЅС–Р№ РїРµСЂРµРіР»СЏРґ РєР°Р±С–РЅРµС‚Сѓ"}</h3>
         </div>
         <form className="stack-form" onSubmit={submitListing}>
           <label>
-            Назва оголошення
+            РќР°Р·РІР° РѕРіРѕР»РѕС€РµРЅРЅСЏ
             <input
               value={listingForm.title}
               onChange={(event) =>
@@ -213,7 +238,7 @@ export function WorkspacePanels({
             />
           </label>
           <label>
-            Опис
+            РћРїРёСЃ
             <textarea
               value={listingForm.description}
               onChange={(event) =>
@@ -223,7 +248,7 @@ export function WorkspacePanels({
           </label>
           <div className="form-row">
             <label>
-              Ціна
+              Р¦С–РЅР°
               <input
                 type="number"
                 min="1"
@@ -235,14 +260,14 @@ export function WorkspacePanels({
               />
             </label>
             <label>
-              Категорія
+              РљР°С‚РµРіРѕСЂС–СЏ
               <select
                 value={listingForm.category_id}
                 onChange={(event) =>
                   setListingForm((current) => ({ ...current, category_id: event.target.value }))
                 }
               >
-                <option value="">Оберіть категорію</option>
+                <option value="">РћР±РµСЂС–С‚СЊ РєР°С‚РµРіРѕСЂС–СЋ</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -252,17 +277,17 @@ export function WorkspacePanels({
             </label>
           </div>
           <label>
-            Посилання на зображення
+            РџРѕСЃРёР»Р°РЅРЅСЏ РЅР° Р·РѕР±СЂР°Р¶РµРЅРЅСЏ
             <textarea
               value={listingForm.image_urls}
-              placeholder="Необов'язково. Вкажіть повні http/https URL, по одному в рядку."
+              placeholder="РќРµРѕР±РѕРІ'СЏР·РєРѕРІРѕ. Р’РєР°Р¶С–С‚СЊ РїРѕРІРЅС– http/https URL, РїРѕ РѕРґРЅРѕРјСѓ РІ СЂСЏРґРєСѓ."
               onChange={(event) =>
                 setListingForm((current) => ({ ...current, image_urls: event.target.value }))
               }
             />
           </label>
           <button className="cta-button" disabled={listingBusy} type="submit">
-            {listingBusy ? "Публікуємо..." : "Опублікувати оголошення"}
+            {listingBusy ? "РџСѓР±Р»С–РєСѓС”РјРѕ..." : "РћРїСѓР±Р»С–РєСѓРІР°С‚Рё РѕРіРѕР»РѕС€РµРЅРЅСЏ"}
           </button>
           {listingError ? <p className="form-error">{listingError}</p> : null}
           {listingSuccess ? <p className="form-success">{listingSuccess}</p> : null}
@@ -272,26 +297,26 @@ export function WorkspacePanels({
       {canOperate ? (
         <section className="workspace-panel subtle">
           <div className="workspace-panel__header">
-            <span className="eyebrow">Операційна панель</span>
-            <h3>Модерація, категорії та повідомлення</h3>
+            <span className="eyebrow">РћРїРµСЂР°С†С–Р№РЅР° РїР°РЅРµР»СЊ</span>
+            <h3>РњРѕРґРµСЂР°С†С–СЏ, РєР°С‚РµРіРѕСЂС–С— С‚Р° РїРѕРІС–РґРѕРјР»РµРЅРЅСЏ</h3>
           </div>
           <div className="mini-stats">
             <div>
               <strong>{pendingListings.length}</strong>
-              <span>Чекають модерації</span>
+              <span>Р§РµРєР°СЋС‚СЊ РјРѕРґРµСЂР°С†С–С—</span>
             </div>
             <div>
               <strong>{messages.length}</strong>
-              <span>Повідомлення</span>
+              <span>РџРѕРІС–РґРѕРјР»РµРЅРЅСЏ</span>
             </div>
             <div>
               <strong>{myListings.length}</strong>
-              <span>Мої оголошення</span>
+              <span>РњРѕС— РѕРіРѕР»РѕС€РµРЅРЅСЏ</span>
             </div>
           </div>
           <form className="stack-form compact" onSubmit={submitCategory}>
             <label>
-              Нова категорія
+              РќРѕРІР° РєР°С‚РµРіРѕСЂС–СЏ
               <input
                 value={categoryForm.name}
                 onChange={(event) =>
@@ -300,7 +325,7 @@ export function WorkspacePanels({
               />
             </label>
             <label>
-              Опис категорії
+              РћРїРёСЃ РєР°С‚РµРіРѕСЂС–С—
               <input
                 value={categoryForm.description}
                 onChange={(event) =>
@@ -309,7 +334,7 @@ export function WorkspacePanels({
               />
             </label>
             <button className="ghost-button" disabled={categoryBusy} type="submit">
-              {categoryBusy ? "Створюємо..." : "Додати категорію"}
+              {categoryBusy ? "РЎС‚РІРѕСЂСЋС”РјРѕ..." : "Р”РѕРґР°С‚Рё РєР°С‚РµРіРѕСЂС–СЋ"}
             </button>
             {categoryError ? <p className="form-error">{categoryError}</p> : null}
             {categorySuccess ? <p className="form-success">{categorySuccess}</p> : null}
@@ -318,13 +343,13 @@ export function WorkspacePanels({
           <section className="moderation-board">
             <div className="moderation-board__header">
               <div>
-                <strong>Черга модерації</strong>
+                <strong>Р§РµСЂРіР° РјРѕРґРµСЂР°С†С–С—</strong>
                 <p>
-                  Швидко переглядайте pending-оголошення, схвалюйте якісні публікації або
-                  повертайте їх автору з поясненням.
+                  РЁРІРёРґРєРѕ РїРµСЂРµРіР»СЏРґР°Р№С‚Рµ pending-РѕРіРѕР»РѕС€РµРЅРЅСЏ, СЃС…РІР°Р»СЋР№С‚Рµ СЏРєС–СЃРЅС– РїСѓР±Р»С–РєР°С†С–С— Р°Р±Рѕ
+                  РїРѕРІРµСЂС‚Р°Р№С‚Рµ С—С… Р°РІС‚РѕСЂСѓ Р· РїРѕСЏСЃРЅРµРЅРЅСЏРј.
                 </p>
               </div>
-              <span className="status-pill">{pendingListings.length} у черзі</span>
+              <span className="status-pill">{pendingListings.length} Сѓ С‡РµСЂР·С–</span>
             </div>
 
             {moderationError ? <p className="form-error">{moderationError}</p> : null}
@@ -343,17 +368,17 @@ export function WorkspacePanels({
                     </div>
 
                     <div className="moderation-card__meta">
-                      <span>{categoryMap.get(listing.category_id)?.name ?? "Без категорії"}</span>
+                      <span>{categoryMap.get(listing.category_id)?.name ?? "Р‘РµР· РєР°С‚РµРіРѕСЂС–С—"}</span>
                       <strong>${listing.price.toFixed(2)}</strong>
                     </div>
 
                     <p className="moderation-card__description">{listing.description}</p>
 
                     <label className="moderation-card__label">
-                      Причина відхилення
+                      РџСЂРёС‡РёРЅР° РІС–РґС…РёР»РµРЅРЅСЏ
                       <textarea
                         value={moderationNotes[listing.id] ?? ""}
-                        placeholder="Наприклад: потрібні чіткіші фото, уточніть стан товару або заповніть опис."
+                        placeholder="РќР°РїСЂРёРєР»Р°Рґ: РїРѕС‚СЂС–Р±РЅС– С‡С–С‚РєС–С€С– С„РѕС‚Рѕ, СѓС‚РѕС‡РЅС–С‚СЊ СЃС‚Р°РЅ С‚РѕРІР°СЂСѓ Р°Р±Рѕ Р·Р°РїРѕРІРЅС–С‚СЊ РѕРїРёСЃ."
                         onChange={(event) =>
                           setModerationNotes((current) => ({
                             ...current,
@@ -370,7 +395,7 @@ export function WorkspacePanels({
                         type="button"
                         onClick={() => void moderateListing(listing.id, true)}
                       >
-                        {moderationBusyId === listing.id ? "Обробляємо..." : "Схвалити"}
+                        {moderationBusyId === listing.id ? "РћР±СЂРѕР±Р»СЏС”РјРѕ..." : "РЎС…РІР°Р»РёС‚Рё"}
                       </button>
                       <button
                         className="cta-button moderation-card__reject"
@@ -378,15 +403,15 @@ export function WorkspacePanels({
                         type="button"
                         onClick={() => void moderateListing(listing.id, false)}
                       >
-                        {moderationBusyId === listing.id ? "Обробляємо..." : "Відхилити"}
+                        {moderationBusyId === listing.id ? "РћР±СЂРѕР±Р»СЏС”РјРѕ..." : "Р’С–РґС…РёР»РёС‚Рё"}
                       </button>
                     </div>
                   </article>
                 ))
               ) : (
                 <div className="empty-card moderation-empty">
-                  <strong>Черга чиста</strong>
-                  <p>Наразі немає pending-оголошень. Нові публікації з'являються тут автоматично.</p>
+                  <strong>Р§РµСЂРіР° С‡РёСЃС‚Р°</strong>
+                  <p>РќР°СЂР°Р·С– РЅРµРјР°С” pending-РѕРіРѕР»РѕС€РµРЅСЊ. РќРѕРІС– РїСѓР±Р»С–РєР°С†С–С— Р·'СЏРІР»СЏСЋС‚СЊСЃСЏ С‚СѓС‚ Р°РІС‚РѕРјР°С‚РёС‡РЅРѕ.</p>
                 </div>
               )}
             </div>
@@ -394,21 +419,21 @@ export function WorkspacePanels({
 
           <div className="workspace-list-preview">
             <div>
-              <strong>Останні повідомлення</strong>
+              <strong>РћСЃС‚Р°РЅРЅС– РїРѕРІС–РґРѕРјР»РµРЅРЅСЏ</strong>
               <ul>
                 {messages.length ? (
                   messages.slice(0, 3).map((message) => <li key={message.id}>{message.body}</li>)
                 ) : (
-                  <li>Поки що повідомлень немає.</li>
+                  <li>РџРѕРєРё С‰Рѕ РїРѕРІС–РґРѕРјР»РµРЅСЊ РЅРµРјР°С”.</li>
                 )}
               </ul>
             </div>
             <div>
-              <strong>Що перевіряти насамперед</strong>
+              <strong>Р©Рѕ РїРµСЂРµРІС–СЂСЏС‚Рё РЅР°СЃР°РјРїРµСЂРµРґ</strong>
               <ul>
-                <li>Чи достатньо конкретний заголовок.</li>
-                <li>Чи опис дає покупцю повну картину.</li>
-                <li>Чи є адекватна ціна та коректна категорія.</li>
+                <li>Р§Рё РґРѕСЃС‚Р°С‚РЅСЊРѕ РєРѕРЅРєСЂРµС‚РЅРёР№ Р·Р°РіРѕР»РѕРІРѕРє.</li>
+                <li>Р§Рё РѕРїРёСЃ РґР°С” РїРѕРєСѓРїС†СЋ РїРѕРІРЅСѓ РєР°СЂС‚РёРЅСѓ.</li>
+                <li>Р§Рё С” Р°РґРµРєРІР°С‚РЅР° С†С–РЅР° С‚Р° РєРѕСЂРµРєС‚РЅР° РєР°С‚РµРіРѕСЂС–СЏ.</li>
               </ul>
             </div>
           </div>
@@ -417,8 +442,8 @@ export function WorkspacePanels({
 
       <section className="workspace-panel wide">
         <div className="workspace-panel__header">
-          <span className="eyebrow">Асортимент</span>
-          <h3>Ваші поточні оголошення</h3>
+          <span className="eyebrow">РђСЃРѕСЂС‚РёРјРµРЅС‚</span>
+          <h3>Р’Р°С€С– РїРѕС‚РѕС‡РЅС– РѕРіРѕР»РѕС€РµРЅРЅСЏ</h3>
         </div>
         <div className="listing-grid compact">
           {myListings.length ? (
@@ -431,8 +456,8 @@ export function WorkspacePanels({
             ))
           ) : (
             <div className="empty-card">
-              <strong>Поки що немає жодного оголошення</strong>
-              <p>Створіть першу публікацію у верхній формі, і вона одразу з'явиться тут.</p>
+              <strong>РџРѕРєРё С‰Рѕ РЅРµРјР°С” Р¶РѕРґРЅРѕРіРѕ РѕРіРѕР»РѕС€РµРЅРЅСЏ</strong>
+              <p>РЎС‚РІРѕСЂС–С‚СЊ РїРµСЂС€Сѓ РїСѓР±Р»С–РєР°С†С–СЋ Сѓ РІРµСЂС…РЅС–Р№ С„РѕСЂРјС–, С– РІРѕРЅР° РѕРґСЂР°Р·Сѓ Р·'СЏРІРёС‚СЊСЃСЏ С‚СѓС‚.</p>
             </div>
           )}
         </div>

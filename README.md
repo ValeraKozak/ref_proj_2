@@ -1,28 +1,35 @@
-# Платформа Для Дошки Оголошень
+# Bulletin Board Platform
 
-Навчальний проєкт на `FastAPI` для розміщення оголошень, модерації, категорій і повідомлень між користувачами. Поточна версія використовує `MongoDB` як основну базу даних і зберігає зовнішній API з числовими `id`, щоб не ламати frontend.
+![CI](https://github.com/ValeraKozak/ref_proj_2/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/ValeraKozak/ref_proj_2/actions/workflows/deploy.yml/badge.svg)
+![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ValeraKozak_ref_proj_2&metric=alert_status)
+![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ValeraKozak_ref_proj_2&metric=coverage)
 
-## Основні можливості
-- JWT-реєстрація та логін
-- ролі `user`, `moderator`, `admin`
-- створення, редагування і видалення оголошень
-- модерація оголошень
-- повідомлення між користувачами
-- пошук, фільтри й сортування каталогу
-- OpenAPI / Swagger
-- unit та integration тести
-- Docker, CI/CD, production frontend через `nginx`
+Educational marketplace project built with `FastAPI`, `MongoDB`, and a React frontend. The platform supports listings, categories, moderation, messaging, image uploads, and a catalog/detail experience for bulletin-board style publishing.
 
-## Технологічний стек
+## Highlights
+- JWT registration and login
+- Roles: `user`, `moderator`, `admin`
+- Listing lifecycle: create, edit, moderate, archive
+- Categories and moderation workspace
+- Catalog search, filters, sorting, and detail page
+- Messaging between buyers and sellers
+- Image upload endpoint and static upload serving
+- Unit and integration tests with coverage reporting
+- Dockerized local run and GitHub Actions CI/CD
+
+## Stack
 - Python 3.11
 - FastAPI
-- MongoDB
-- PyMongo
-- PyTest + mongomock
+- MongoDB / PyMongo
+- Pydantic v2
+- React + Vite
+- Pytest + pytest-cov + mongomock
 - Docker
 - GitHub Actions
+- SonarQube / SonarCloud ready pipeline
 
-## Структура
+## Repository Structure
 ```text
 src/
   controllers/
@@ -30,18 +37,20 @@ src/
   repositories/
   models/
   dto/
+  db/
 tests/
   unit/
   integration/
-db/
-  seed/
 docs/
   diagrams/
   spec/
+.cursor/
+  rules/
+.github/workflows/
 frontend/
 ```
 
-## Локальний запуск
+## Local Backend Run
 ```powershell
 py -m venv .venv
 . .venv\Scripts\Activate.ps1
@@ -50,7 +59,7 @@ Copy-Item .env.example .env
 uvicorn src.main:app --reload
 ```
 
-Для локального запуску MongoDB має бути доступна за URL з `.env`, наприклад:
+Example local database URL:
 ```env
 APP_DATABASE_URL=mongodb://localhost:27017/bulletin_board
 ```
@@ -58,47 +67,79 @@ APP_DATABASE_URL=mongodb://localhost:27017/bulletin_board
 Swagger:
 - `http://127.0.0.1:8000/docs`
 
-Frontend окремо:
+## Local Frontend Run
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-## Одинарний запуск
+## One-command Local Run
 ```powershell
 .\run.ps1
 ```
 
-## Docker
+## Docker Run
 ```powershell
 Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Контейнери:
+Available services:
 - API: `http://127.0.0.1:8000`
 - Swagger: `http://127.0.0.1:8000/docs`
 - Frontend: `http://127.0.0.1:5173`
 - MongoDB: `mongodb://localhost:27017`
 
-## Тести
+## Testing and Reports
+Run tests with XML and HTML coverage output:
 ```powershell
-py -m pytest --cov=src --cov-report=term-missing
+py -m pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --junitxml=pytest-report.xml
 ```
 
-## Документація
-- [Вимоги](docs/spec/requirements.md)
-- [Архітектура](docs/spec/architecture.md)
-- [База даних](docs/spec/database.md)
-- [API](docs/spec/api.md)
-- [Frontend User Guide](docs/spec/frontend.md)
-- [Deployment](docs/spec/deployment.md)
-- [Testing](docs/spec/testing.md)
+Generated outputs:
+- `coverage.xml`
+- `pytest-report.xml`
+- `htmlcov/`
 
-## Безпека
-- JWT для автентифікації
-- RBAC для доступу до модерації та керування користувачами
-- валідація через Pydantic
-- ізоляція persistence-логіки в репозиторіях
-- конфігурація через `.env`
+CI uploads these artifacts after every commit so they can be downloaded from the workflow run.
+
+## SonarQube / SonarCloud
+The repository includes:
+- `sonar-project.properties`
+- XML coverage and test reports for scanner import
+- conditional Sonar scan and Quality Gate steps in CI
+
+To enable Sonar in GitHub Actions, configure:
+- `SONAR_TOKEN`
+- `SONAR_HOST_URL`
+
+If you use SonarCloud, point `SONAR_HOST_URL` to `https://sonarcloud.io`.
+
+## AI Rules
+The project includes AI-oriented repository rules:
+- [Global rules](</e:/Аналіз та рефакторинг коду/proj2/.cursorrules>)
+- [Architecture rules](</e:/Аналіз та рефакторинг коду/proj2/.cursor/rules/architecture.md>)
+- [Testing rules](</e:/Аналіз та рефакторинг коду/proj2/.cursor/rules/testing.md>)
+
+## Documentation
+- [Requirements](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/requirements.md>)
+- [Architecture](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/architecture.md>)
+- [Database](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/database.md>)
+- [API](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/api.md>)
+- [Frontend Guide](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/frontend.md>)
+- [Deployment](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/deployment.md>)
+- [Testing](</e:/Аналіз та рефакторинг коду/proj2/docs/spec/testing.md>)
+
+## Security Notes
+- JWT authentication
+- Role-based access control
+- Pydantic request validation
+- Repository isolation for persistence logic
+- Environment-based configuration
+
+## Quality Goals
+- Coverage target: `70%+`
+- Expanded unit and integration suite for edge cases and role flows
+- XML and HTML reports in CI artifacts
+- Sonar Quality Gate support in pipeline

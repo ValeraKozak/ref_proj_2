@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -88,10 +89,18 @@ async def _store_upload_file(file: UploadFile, upload_dir: Path) -> UploadImageR
     contents = await file.read()
     _validate_file_contents(file, contents, extension)
 
-    filename = f"{uuid4().hex}{extension}"
-    destination = upload_dir / filename
+    with NamedTemporaryFile(
+        dir=upload_dir,
+        prefix=f"{uuid4().hex}-",
+        suffix=extension,
+        delete=False,
+    ) as temporary_file:
+        destination = Path(temporary_file.name)
+
     destination.write_bytes(contents)
-    return UploadImageReadDTO(url=f"{settings.uploads_url_prefix.rstrip('/')}/{filename}")
+    return UploadImageReadDTO(
+        url=f"{settings.uploads_url_prefix.rstrip('/')}/{destination.name}"
+    )
 
 
 @router.post("/images", status_code=201)

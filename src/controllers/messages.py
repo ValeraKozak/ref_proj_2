@@ -9,7 +9,7 @@ from src.services.message_service import MessageService
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
-@router.post("", response_model=MessageReadDTO, status_code=201)
+@router.post("", status_code=201)
 def send_message(
     payload: MessageCreateDTO,
     db: DatabaseSession = Depends(get_db),
@@ -18,7 +18,7 @@ def send_message(
     return MessageService(db).send(payload, current_user)
 
 
-@router.get("/me", response_model=list[MessageReadDTO])
+@router.get("/me")
 def my_messages(
     db: DatabaseSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -26,7 +26,7 @@ def my_messages(
     return MessageService(db).list_user_messages(current_user.id)
 
 
-@router.get("/{message_id}", response_model=MessageReadDTO)
+@router.get("/{message_id}")
 def get_message(
     message_id: int,
     db: DatabaseSession = Depends(get_db),
@@ -35,7 +35,7 @@ def get_message(
     return MessageService(db).get_user_message(message_id, current_user.id)
 
 
-@router.delete("/{message_id}", response_model=DeleteResponseDTO)
+@router.delete("/{message_id}")
 def delete_message(
     message_id: int,
     db: DatabaseSession = Depends(get_db),

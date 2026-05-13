@@ -9,7 +9,7 @@ from src.services.category_service import CategoryService
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
-@router.post("", response_model=CategoryReadDTO, status_code=201)
+@router.post("", status_code=201)
 def create_category(
     payload: CategoryCreateDTO,
     db: DatabaseSession = Depends(get_db),
@@ -18,17 +18,17 @@ def create_category(
     return CategoryService(db).create(payload)
 
 
-@router.get("", response_model=list[CategoryReadDTO])
+@router.get("")
 def list_categories(db: DatabaseSession = Depends(get_db)) -> list[CategoryReadDTO]:
     return CategoryService(db).list_all()
 
 
-@router.get("/{category_id}", response_model=CategoryReadDTO)
+@router.get("/{category_id}")
 def get_category(category_id: int, db: DatabaseSession = Depends(get_db)) -> CategoryReadDTO:
     return CategoryService(db).get_by_id(category_id)
 
 
-@router.put("/{category_id}", response_model=CategoryReadDTO)
+@router.put("/{category_id}")
 def update_category(
     category_id: int,
     payload: CategoryUpdateDTO,
@@ -38,7 +38,7 @@ def update_category(
     return CategoryService(db).update(category_id, payload)
 
 
-@router.delete("/{category_id}", response_model=DeleteResponseDTO)
+@router.delete("/{category_id}")
 def delete_category(
     category_id: int,
     db: DatabaseSession = Depends(get_db),

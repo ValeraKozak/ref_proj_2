@@ -9,12 +9,12 @@ from src.services.user_service import UserService
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/me", response_model=UserReadDTO)
+@router.get("/me")
 def get_me(current_user: User = Depends(get_current_user)) -> UserReadDTO:
     return current_user
 
 
-@router.patch("/me", response_model=UserReadDTO)
+@router.patch("/me")
 def update_me(
     payload: UserUpdateDTO,
     db: DatabaseSession = Depends(get_db),
@@ -23,7 +23,7 @@ def update_me(
     return UserService(db).update_self(current_user, payload)
 
 
-@router.get("", response_model=list[UserReadDTO])
+@router.get("")
 def list_users(
     db: DatabaseSession = Depends(get_db),
     _: User = Depends(require_role(Role.ADMIN)),
@@ -31,7 +31,7 @@ def list_users(
     return UserService(db).list_all()
 
 
-@router.get("/{user_id}", response_model=UserReadDTO)
+@router.get("/{user_id}")
 def get_user(
     user_id: int,
     db: DatabaseSession = Depends(get_db),
@@ -40,7 +40,7 @@ def get_user(
     return UserService(db).get_by_id(user_id)
 
 
-@router.patch("/{user_id}", response_model=UserReadDTO)
+@router.patch("/{user_id}")
 def update_user(
     user_id: int,
     payload: UserAdminUpdateDTO,
@@ -50,7 +50,7 @@ def update_user(
     return UserService(db).update_by_admin(user_id, payload)
 
 
-@router.delete("/{user_id}", response_model=DeleteResponseDTO, status_code=status.HTTP_200_OK)
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 def delete_user(
     user_id: int,
     db: DatabaseSession = Depends(get_db),

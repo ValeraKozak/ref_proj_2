@@ -21,7 +21,7 @@ MAX_FILES_PER_REQUEST = 6
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 
 
-@router.post("/images", response_model=UploadImageBatchDTO, status_code=201)
+@router.post("/images", status_code=201)
 async def upload_images(
     files: list[UploadFile] = File(...),
     current_user: User = Depends(get_current_user),

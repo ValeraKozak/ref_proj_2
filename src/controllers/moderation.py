@@ -9,7 +9,7 @@ from src.services.moderation_service import ModerationService
 router = APIRouter(prefix="/moderation", tags=["moderation"])
 
 
-@router.post("/listings/{listing_id}", response_model=ListingReadDTO)
+@router.post("/listings/{listing_id}")
 def review_listing(
     listing_id: int,
     payload: ModerationDecisionDTO,

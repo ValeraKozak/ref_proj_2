@@ -13,7 +13,7 @@ router = APIRouter(prefix="/listings", tags=["listings"])
 optional_bearer = HTTPBearer(auto_error=False)
 
 
-@router.post("", response_model=ListingReadDTO, status_code=201)
+@router.post("", status_code=201)
 def create_listing(
     payload: ListingCreateDTO,
     db: DatabaseSession = Depends(get_db),
@@ -22,7 +22,7 @@ def create_listing(
     return ListingService(db).create(payload, current_user)
 
 
-@router.put("/{listing_id}", response_model=ListingReadDTO)
+@router.put("/{listing_id}")
 def update_listing(
     listing_id: int,
     payload: ListingUpdateDTO,
@@ -32,7 +32,7 @@ def update_listing(
     return ListingService(db).update(listing_id, payload, current_user)
 
 
-@router.get("", response_model=list[ListingReadDTO])
+@router.get("")
 def public_listings(
     db: DatabaseSession = Depends(get_db),
     query: str | None = Query(default=None, min_length=1, max_length=100),
@@ -52,7 +52,7 @@ def public_listings(
     )
 
 
-@router.get("/me/owned", response_model=list[ListingReadDTO])
+@router.get("/me/owned")
 def my_listings(
     db: DatabaseSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -60,7 +60,7 @@ def my_listings(
     return ListingService(db).get_owned(current_user)
 
 
-@router.get("/moderation/pending", response_model=list[ListingReadDTO])
+@router.get("/moderation/pending")
 def moderation_queue(
     db: DatabaseSession = Depends(get_db),
     _: User = Depends(require_role(Role.ADMIN, Role.MODERATOR)),
@@ -68,7 +68,7 @@ def moderation_queue(
     return ListingService(db).get_for_moderation()
 
 
-@router.get("/{listing_id}", response_model=ListingReadDTO)
+@router.get("/{listing_id}")
 def get_listing(
     listing_id: int,
     db: DatabaseSession = Depends(get_db),
@@ -80,7 +80,7 @@ def get_listing(
     return ListingService(db).get_by_id(listing_id, current_user)
 
 
-@router.delete("/{listing_id}", response_model=DeleteResponseDTO)
+@router.delete("/{listing_id}")
 def delete_listing(
     listing_id: int,
     db: DatabaseSession = Depends(get_db),

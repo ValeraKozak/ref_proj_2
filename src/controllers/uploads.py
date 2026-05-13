@@ -21,6 +21,18 @@ MAX_FILES_PER_REQUEST = 6
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 
 
+def _detect_image_extension(contents: bytes) -> str | None:
+    if contents.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if contents.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if contents.startswith((b"GIF87a", b"GIF89a")):
+        return ".gif"
+    if len(contents) >= 12 and contents.startswith(b"RIFF") and contents[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
 @router.post("/images", status_code=201)
 async def upload_images(
     files: list[UploadFile] = File(...),
@@ -61,6 +73,12 @@ async def upload_images(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"File {file.filename or 'image'} is larger than 5 MB",
+            )
+        detected_extension = _detect_image_extension(contents)
+        if detected_extension != extension:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File {file.filename or 'image'} does not match the declared image type",
             )
 
         filename = f"{uuid4().hex}{extension}"

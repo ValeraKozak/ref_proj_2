@@ -276,3 +276,31 @@ def test_public_listing_filters_and_sorting(client, db_session, seeded_users, se
     payload = response.json()
     assert len(payload) == 1
     assert payload[0]["title"] == "Modern Mirrorless Camera"
+
+
+def test_image_upload_accepts_valid_png_signature(client, seeded_users):
+    png_bytes = (
+        b"\x89PNG\r\n\x1a\n"
+        b"\x00\x00\x00\rIHDR"
+        b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00"
+        b"\x90wS\xde"
+    )
+    response = client.post(
+        "/uploads/images",
+        files={"files": ("pixel.png", png_bytes, "image/png")},
+        headers=auth_header(seeded_users["owner"].email),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["files"][0]["url"].endswith(".png")
+
+
+def test_image_upload_rejects_spoofed_content_type(client, seeded_users):
+    response = client.post(
+        "/uploads/images",
+        files={"files": ("fake.png", b"not really an image", "image/png")},
+        headers=auth_header(seeded_users["owner"].email),
+    )
+
+    assert response.status_code == 400
+    assert "does not match the declared image type" in response.json()["detail"]

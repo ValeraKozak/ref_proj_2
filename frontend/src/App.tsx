@@ -37,6 +37,48 @@ export function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [token, setToken] = useState<string>(() => window.localStorage.getItem(TOKEN_KEY) ?? "");
 
+  function navigateToError(error: unknown) {
+    console.error(error);
+    const code = resolvePageError(error);
+    if (code) {
+      navigate(`/errors/${code}`, { replace: true });
+    }
+  }
+
+  function clearPrivateState() {
+    setUser(null);
+    setMyListings([]);
+    setPendingListings([]);
+    setMessages([]);
+  }
+
+  function clearToken() {
+    window.localStorage.removeItem(TOKEN_KEY);
+    setToken("");
+  }
+
+  function ensureToken() {
+    if (!token) {
+      throw new Error("Login required");
+    }
+    return token;
+  }
+
+  function updateModerationQueue(activeUser: User, queue: Listing[]) {
+    if (activeUser.role === "moderator" || activeUser.role === "admin") {
+      setPendingListings(queue);
+      return;
+    }
+    setPendingListings([]);
+  }
+
+  async function loadPendingListingsForRole(activeToken: string, activeUser: User) {
+    if (activeUser.role !== "moderator" && activeUser.role !== "admin") {
+      return [];
+    }
+    return api.pendingListings(activeToken);
+  }
+
   async function refreshPublicData() {
     const [healthData, categoryData, listingData] = await Promise.all([
       api.health(),
@@ -52,49 +94,32 @@ export function App() {
     const profile = await api.me(activeToken);
     setUser(profile);
 
-    const [owned, inbox] = await Promise.all([api.myListings(activeToken), api.messages(activeToken)]);
+    const [owned, inbox, queue] = await Promise.all([
+      api.myListings(activeToken),
+      api.messages(activeToken),
+      loadPendingListingsForRole(activeToken, profile),
+    ]);
     setMyListings(owned);
     setMessages(inbox);
-
-    if (profile.role === "moderator" || profile.role === "admin") {
-      setPendingListings(await api.pendingListings(activeToken));
-    } else {
-      setPendingListings([]);
-    }
+    updateModerationQueue(profile, queue);
   }
 
   useEffect(() => {
-    refreshPublicData().catch((error) => {
-      console.error(error);
-      const code = resolvePageError(error);
-      if (code) {
-        navigate(`/errors/${code}`, { replace: true });
-      }
-    });
+    refreshPublicData().catch(navigateToError);
   }, [navigate]);
 
   useEffect(() => {
     if (!token) {
-      setUser(null);
-      setMyListings([]);
-      setPendingListings([]);
-      setMessages([]);
+      clearPrivateState();
       return;
     }
 
     refreshPrivateData(token).catch((error) => {
-      console.error(error);
-
       if (error instanceof APIError && (error.status === 401 || error.status === 403)) {
-        window.localStorage.removeItem(TOKEN_KEY);
-        setToken("");
+        clearToken();
         return;
       }
-
-      const code = resolvePageError(error);
-      if (code) {
-        navigate(`/errors/${code}`, { replace: true });
-      }
+      navigateToError(error);
     });
   }, [navigate, token]);
 
@@ -116,38 +141,29 @@ export function App() {
     category_id: number;
     image_urls: string[];
   }) {
-    if (!token) {
-      throw new Error("Login required");
-    }
-    await api.createListing(token, payload);
-    await Promise.all([refreshPublicData(), refreshPrivateData(token)]);
+    const activeToken = ensureToken();
+    await api.createListing(activeToken, payload);
+    await Promise.all([refreshPublicData(), refreshPrivateData(activeToken)]);
   }
 
   async function handleUploadImages(files: File[]) {
-    if (!token) {
-      throw new Error("Login required");
-    }
-    return api.uploadImages(token, files);
+    return api.uploadImages(ensureToken(), files);
   }
 
   async function handleCreateCategory(payload: { name: string; description: string }) {
-    if (!token) {
-      throw new Error("Login required");
-    }
-    await api.createCategory(token, payload);
+    const activeToken = ensureToken();
+    await api.createCategory(activeToken, payload);
     await refreshPublicData();
-    await refreshPrivateData(token);
+    await refreshPrivateData(activeToken);
   }
 
   async function handleModerateListing(
     listing_id: number,
     payload: { approved: boolean; rejection_reason?: string | null },
   ) {
-    if (!token) {
-      throw new Error("Login required");
-    }
-    await api.moderateListing(token, listing_id, payload);
-    await Promise.all([refreshPublicData(), refreshPrivateData(token)]);
+    const activeToken = ensureToken();
+    await api.moderateListing(activeToken, listing_id, payload);
+    await Promise.all([refreshPublicData(), refreshPrivateData(activeToken)]);
   }
 
   async function handleSendMessage(payload: {
@@ -155,11 +171,9 @@ export function App() {
     recipient_id: number;
     body: string;
   }) {
-    if (!token) {
-      throw new Error("Login required");
-    }
-    await api.sendMessage(token, payload);
-    await refreshPrivateData(token);
+    const activeToken = ensureToken();
+    await api.sendMessage(activeToken, payload);
+    await refreshPrivateData(activeToken);
   }
 
   const isAuthenticated = useMemo(() => Boolean(token && user), [token, user]);

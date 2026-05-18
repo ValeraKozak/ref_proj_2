@@ -15,9 +15,22 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     algorithm: str = "HS256"
     log_level: str = "INFO"
-    frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    frontend_origins: str = ""
+    frontend_origin_scheme: str = "http"
+    frontend_origin_hosts: str = "localhost:5173,127.0.0.1:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="APP_", extra="ignore")
+
+    @property
+    def frontend_origins_list(self) -> list[str]:
+        if self.frontend_origins.strip():
+            return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
+
+        return [
+            f"{self.frontend_origin_scheme}://{host.strip()}"
+            for host in self.frontend_origin_hosts.split(",")
+            if host.strip()
+        ]
 
 
 @lru_cache

@@ -40,11 +40,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
-    allowed_origins = [
-        origin.strip()
-        for origin in settings.frontend_origins.split(",")
-        if origin.strip()
-    ]
+    allowed_origins = settings.frontend_origins_list
     application.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,

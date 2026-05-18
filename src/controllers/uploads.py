@@ -1,7 +1,7 @@
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from uuid import uuid4
 
+from anyio import Path as AsyncPath
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from src.core.config import get_settings
@@ -50,7 +50,7 @@ def _ensure_upload_request_allowed(current_user: User, files: list[UploadFile]) 
 
 
 def _resolve_upload_dir() -> Path:
-    upload_dir = Path(settings.upload_dir)
+    upload_dir = Path(settings.upload_dir).resolve()
     upload_dir.mkdir(parents=True, exist_ok=True)
     return upload_dir
 
@@ -84,19 +84,24 @@ def _validate_file_contents(file: UploadFile, contents: bytes, expected_extensio
         )
 
 
+def _build_upload_destination(upload_dir: Path, extension: str) -> tuple[Path, str]:
+    filename = f"{uuid4().hex}{extension}"
+    destination = (upload_dir / filename).resolve()
+    if destination.parent != upload_dir:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not allocate a safe upload destination",
+        )
+    return destination, filename
+
+
 async def _store_upload_file(file: UploadFile, upload_dir: Path) -> UploadImageReadDTO:
     extension = _get_declared_extension(file)
     contents = await file.read()
     _validate_file_contents(file, contents, extension)
 
-    with NamedTemporaryFile(
-        dir=upload_dir,
-        prefix=f"{uuid4().hex}-",
-        suffix=extension,
-        delete=False,
-    ) as temporary_file:
-        temporary_file.write(contents)
-        filename = Path(temporary_file.name).name
+    destination, filename = _build_upload_destination(upload_dir, extension)
+    await AsyncPath(destination).write_bytes(contents)
 
     return UploadImageReadDTO(url=f"{settings.uploads_url_prefix.rstrip('/')}/{filename}")
 

@@ -50,8 +50,25 @@ const EMPTY_LISTING_FORM: ListingFormState = {
   image_urls: "",
 };
 
-const LISTING_SUCCESS_MESSAGE = "Оголошення створено та відправлено на модерацію.";
+const LISTING_SUCCESS_MESSAGE =
+  "Оголошення створено та відправлено на модерацію.";
 const LISTING_FALLBACK_ERROR = "Не вдалося створити оголошення.";
+
+function isValidHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function parseImageUrls(rawValue: string) {
+  return rawValue
+    .split("\n")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
 
 function ModerationSection({
   pendingListings,
@@ -62,7 +79,7 @@ function ModerationSection({
   moderationSuccess,
   onModerationNoteChange,
   onModerateListing,
-}: ModerationSectionProps) {
+}: Readonly<ModerationSectionProps>) {
   return (
     <section className="moderation-board">
       <div className="moderation-board__header">
@@ -99,7 +116,7 @@ function ModerationSection({
               <p className="moderation-card__description">{listing.description}</p>
 
               <label className="moderation-card__label">
-                Причина відхилення
+                <span>Причина відхилення</span>
                 <textarea
                   value={moderationNotes[listing.id] ?? ""}
                   placeholder="Наприклад: потрібні чіткіші фото, уточніть стан товару або заповніть опис."
@@ -147,7 +164,7 @@ export function WorkspacePanels({
   onCreateListing,
   onCreateCategory,
   onModerateListing,
-}: WorkspacePanelsProps) {
+}: Readonly<WorkspacePanelsProps>) {
   const canOperate = user?.role === "admin" || user?.role === "moderator";
   const categoryMap = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
@@ -166,22 +183,6 @@ export function WorkspacePanels({
   const [listingSuccess, setListingSuccess] = useState("");
   const [categorySuccess, setCategorySuccess] = useState("");
   const [moderationSuccess, setModerationSuccess] = useState("");
-
-  function isValidHttpUrl(value: string) {
-    try {
-      const url = new URL(value);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }
-
-  function parseImageUrls(rawValue: string) {
-    return rawValue
-      .split("\n")
-      .map((value) => value.trim())
-      .filter(Boolean);
-  }
 
   function getListingValidationError(
     currentUser: User | null,
@@ -329,7 +330,7 @@ export function WorkspacePanels({
         </div>
         <form className="stack-form" onSubmit={submitListing}>
           <label>
-            Назва оголошення
+            <span>Назва оголошення</span>
             <input
               value={listingForm.title}
               onChange={(event) =>
@@ -338,7 +339,7 @@ export function WorkspacePanels({
             />
           </label>
           <label>
-            Опис
+            <span>Опис</span>
             <textarea
               value={listingForm.description}
               onChange={(event) =>
@@ -348,7 +349,7 @@ export function WorkspacePanels({
           </label>
           <div className="form-row">
             <label>
-              Ціна
+              <span>Ціна</span>
               <input
                 type="number"
                 min="1"
@@ -360,7 +361,7 @@ export function WorkspacePanels({
               />
             </label>
             <label>
-              Категорія
+              <span>Категорія</span>
               <select
                 value={listingForm.category_id}
                 onChange={(event) =>
@@ -377,7 +378,7 @@ export function WorkspacePanels({
             </label>
           </div>
           <label>
-            Посилання на зображення
+            <span>Посилання на зображення</span>
             <textarea
               value={listingForm.image_urls}
               placeholder="Необов'язково. Вкажіть повні http/https URL, по одному в рядку."
@@ -416,7 +417,7 @@ export function WorkspacePanels({
           </div>
           <form className="stack-form compact" onSubmit={submitCategory}>
             <label>
-              Нова категорія
+              <span>Нова категорія</span>
               <input
                 value={categoryForm.name}
                 onChange={(event) =>
@@ -425,7 +426,7 @@ export function WorkspacePanels({
               />
             </label>
             <label>
-              Опис категорії
+              <span>Опис категорії</span>
               <input
                 value={categoryForm.description}
                 onChange={(event) =>
@@ -491,9 +492,7 @@ export function WorkspacePanels({
           ) : (
             <div className="empty-card">
               <strong>Поки що немає жодного оголошення</strong>
-              <p>
-                Створіть першу публікацію у верхній формі, і вона одразу з&apos;явиться тут.
-              </p>
+              <p>Створіть першу публікацію у верхній формі, і вона одразу з&apos;явиться тут.</p>
             </div>
           )}
         </div>

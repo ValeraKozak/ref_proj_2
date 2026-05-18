@@ -484,7 +484,7 @@ main {
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.45), transparent 32%),
     linear-gradient(145deg, rgba(35, 109, 84, 0.92), rgba(200, 139, 50, 0.82));
-  color: #fffaf2;
+  color: #ffffff;
 }
 
 .listing-card__placeholder span {
@@ -565,28 +565,28 @@ main {
 }
 
 .status-badge.approved {
-  background: rgba(35, 109, 84, 0.14);
-  color: #15644c;
+  background: rgba(35, 109, 84, 0.18);
+  color: #0f4d3a;
 }
 
 .status-badge.pending {
-  background: rgba(200, 139, 50, 0.18);
-  color: #7d5d14;
+  background: rgba(200, 139, 50, 0.22);
+  color: #654708;
 }
 
 .status-badge.rejected {
-  background: rgba(232, 111, 91, 0.16);
-  color: #8d3020;
+  background: rgba(232, 111, 91, 0.2);
+  color: #6f2114;
 }
 
 .status-badge.draft {
-  background: rgba(95, 109, 101, 0.15);
-  color: #45524c;
+  background: rgba(95, 109, 101, 0.18);
+  color: #344039;
 }
 
 .status-badge.archived {
-  background: rgba(95, 109, 101, 0.12);
-  color: #5f6d65;
+  background: rgba(95, 109, 101, 0.18);
+  color: #3d4a43;
 }
 
 .split-layout {

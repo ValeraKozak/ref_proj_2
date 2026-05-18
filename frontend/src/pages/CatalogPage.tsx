@@ -14,7 +14,7 @@ const DEFAULT_FILTERS: Required<Pick<ListingFilters, "sort_by" | "sort_order">> 
   sort_order: "desc",
 };
 
-export function CatalogPage({ categories }: CatalogPageProps) {
+export function CatalogPage({ categories }: Readonly<CatalogPageProps>) {
   const [filters, setFilters] = useState({
     query: "",
     category_id: "",
@@ -29,7 +29,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       setIsLoading(true);
       setError("");
       api
@@ -61,7 +61,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
 
     return () => {
       controller.abort();
-      window.clearTimeout(timeoutId);
+      globalThis.clearTimeout(timeoutId);
     };
   }, [filters]);
 
@@ -76,7 +76,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
           />
           <form className="stack-form catalog-filter-panel">
             <label>
-              Що ви шукаєте
+              <span>Що ви шукаєте</span>
               <input
                 placeholder="ноутбук, велосипед, послуги..."
                 value={filters.query}
@@ -86,7 +86,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
               />
             </label>
             <label>
-              Категорія
+              <span>Категорія</span>
               <select
                 value={filters.category_id}
                 onChange={(event) =>
@@ -103,7 +103,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
             </label>
             <div className="form-row">
               <label>
-                Ціна від
+                <span>Ціна від</span>
                 <input
                   type="number"
                   min="0"
@@ -114,7 +114,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
                 />
               </label>
               <label>
-                Ціна до
+                <span>Ціна до</span>
                 <input
                   type="number"
                   min="0"
@@ -127,7 +127,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
             </div>
             <div className="form-row">
               <label>
-                Сортувати за
+                <span>Сортувати за</span>
                 <select
                   value={filters.sort_by}
                   onChange={(event) =>
@@ -142,7 +142,7 @@ export function CatalogPage({ categories }: CatalogPageProps) {
                 </select>
               </label>
               <label>
-                Порядок
+                <span>Порядок</span>
                 <select
                   value={filters.sort_order}
                   onChange={(event) =>
